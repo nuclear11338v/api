@@ -1,42 +1,38 @@
-export default {
-  async fetch(request) {
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get("ask");
+const express = require("express");
+const axios = require("axios");
 
-    if (!query) {
-      return new Response(JSON.stringify({ error: "Query missing! Please add ?ask=your_question" }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+const app = express();
+const PORT = process.env.PORT || 3000;
+const API_KEY = "AIzaSyCLWwTnaGsnwqIPtaz1FP2AnNwS86trVeY"; // ⚠️ Apni Gemini API Key Yaha Dalein
 
-    const API_KEY = "AIzaSyCLWwTnaGsnwqIPtaz1FP2AnNwS86trVeY"; // ⚠️ Yaha apni Gemini API key daalein
+app.get("/", (req, res) => {
+  res.send("Gemini API is Running!");
+});
 
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: query }] }]
-      }),
-    });
+app.get("/ask", async (req, res) => {
+  const query = req.query.ask;
+  if (!query) {
+    return res.json({ error: "Query missing! Use ?ask=your_question" });
+  }
 
-    const data = await geminiResponse.json();
+  try {
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
+      { contents: [{ role: "user", parts: [{ text: query }] }] }
+    );
 
-    if (!data.candidates || data.candidates.length === 0) {
-      return new Response(JSON.stringify({ error: "Gemini API failed!" }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify({
-      response: data.candidates[0].content.parts[0].text,
+    res.json({
+      response: response.data.candidates[0].content.parts[0].text,
       credit: {
-        "join": "@TEAM_X_OG",
+        "Rk join": "@TEAM_X_OG",
         "dev": "@PB_X01"
       }
-    }), {
-      headers: { "Content-Type": "application/json" },
     });
+  } catch (error) {
+    res.json({ error: "Gemini API Error!" });
   }
-};
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
